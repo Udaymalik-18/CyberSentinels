@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CyberSentinels – Phishing & Scam Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============ THEME TOKENS ============ */
+:root{
+  --bg:#070a17;--panel:rgba(16,22,48,.86);--panel2:#0c1230;--field:#0a1029;--line:#252f58;
+  --text:#e9edff;--muted:#97a3cc;--accent:#8b9bff;--accent2:#5eead4;
+  --safe:#2fe3a0;--low:#a3e635;--med:#ffb020;--high:#ff5468;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark;
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){--bg:#eef1fb;--panel:rgba(255,255,255,.92);--panel2:#f3f5ff;--field:#f5f7ff;--line:#d3daf0;--text:#141c3a;--muted:#55628a;--accent:#4655e6;--accent2:#0d9488;--safe:#0f9d58;--low:#5b9a12;--med:#b86e00;--high:#d3263a;color-scheme:light}
+}
+:root[data-theme="light"]{--bg:#eef1fb;--panel:rgba(255,255,255,.92);--panel2:#f3f5ff;--field:#f5f7ff;--line:#d3daf0;--text:#141c3a;--muted:#55628a;--accent:#4655e6;--accent2:#0d9488;--safe:#0f9d58;--low:#5b9a12;--med:#b86e00;--high:#d3263a;color-scheme:light}
+
+/* ============ BASE ============ */
+*{box-sizing:border-box}
+html,body{margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--text);font-family:var(--body);line-height:1.55;min-height:100%;
+  background-image:radial-gradient(color-mix(in srgb,var(--line) 70%,transparent) 1px,transparent 1.4px);background-size:26px 26px}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(700px 360px at 85% -8%,color-mix(in srgb,var(--accent) 24%,transparent),transparent),
+             radial-gradient(520px 320px at -5% 105%,color-mix(in srgb,var(--accent2) 14%,transparent),transparent)}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hide{display:none!important}
+.wrap{position:relative;max-width:1060px;margin:0 auto;padding:20px 16px 56px}
+
+/* ============ HEADER ============ */
+.top{display:flex;gap:16px;align-items:center;margin-bottom:22px}
+.logo{width:68px;height:68px;flex:none;color:var(--accent);filter:drop-shadow(0 0 12px color-mix(in srgb,var(--accent) 70%,transparent))}
+.titles{flex:1;min-width:0}
+.track{display:inline-block;font-size:.76rem;font-weight:600;color:var(--accent2);border:1px solid color-mix(in srgb,var(--accent2) 60%,transparent);border-radius:99px;padding:2px 12px}
+h1{margin:6px 0 0;font:800 clamp(1.9rem,5vw,2.9rem)/1.05 var(--display);letter-spacing:-.02em}
+.sub{margin:4px 0 0;color:var(--muted);font-size:.98rem}
+.theme{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:1.15rem;cursor:pointer;transition:transform .25s}
+.theme:hover{transform:rotate(25deg);border-color:var(--accent)}
+
+/* ============ LAYOUT ============ */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.side{display:grid;gap:14px;position:sticky;top:14px}
+@media (max-width:880px){.layout{grid-template-columns:1fr}.side{position:static}}
+.card{position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;backdrop-filter:blur(8px)}
+.col{display:grid;gap:18px;min-width:0}
+h2{margin:0;font:800 1.55rem/1.15 var(--display);letter-spacing:-.01em}
+h3{margin:0 0 8px;font:700 .95rem var(--display);color:var(--muted)}
+.lead{margin:6px 0 16px;color:var(--muted)}
+
+/* ============ SCANNER ============ */
+.scan{border-radius:24px;padding:24px;border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--field);border:1px solid var(--line);margin-bottom:14px}
+.modes button{padding:11px;border:0;background:transparent;color:var(--muted);border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:background .2s,color .2s}
+.modes button.on{color:#06102a;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.field{display:flex;gap:8px}
+textarea,input[type=text]{width:100%;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--field);color:var(--text);font-family:var(--mono);font-size:.95rem}
+textarea{min-height:130px;resize:vertical}
+textarea:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.mini{flex:none;padding:0 14px;min-height:36px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--text);font-size:.88rem;cursor:pointer}
+.mini:hover{border-color:var(--accent);color:var(--accent)}
+.field .mini{min-height:48px}
+.tools{display:flex;gap:8px;align-items:center;margin-top:8px;color:var(--muted);font-size:.85rem}
+.tools span{flex:1}
+.go{margin-top:14px;width:100%;padding:15px;border:0;border-radius:12px;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#06102a;font:800 1.08rem var(--display);cursor:pointer;transition:transform .15s,box-shadow .2s;box-shadow:0 8px 26px -10px var(--accent)}
+.go:hover{transform:translateY(-1px)}
+.go:active{transform:translateY(1px)}
+.go:disabled{opacity:.6;cursor:wait}
+.hint{margin:8px 0 0;font-size:.8rem;color:var(--muted);text-align:center}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;align-items:center;font-size:.88rem;color:var(--muted)}
+.chips button{border:1px dashed var(--line);background:transparent;color:var(--text);border-radius:99px;padding:6px 13px;cursor:pointer;font-size:.86rem}
+.chips button:hover{border-color:var(--accent);color:var(--accent)}
+.scanrow{display:flex;gap:16px;align-items:center;margin-top:16px}
+.radar{position:relative;flex:none;width:84px;height:84px;border-radius:50%;border:1px solid var(--accent);
+  background:repeating-radial-gradient(circle,transparent 0 11px,color-mix(in srgb,var(--accent) 38%,transparent) 11px 12px)}
+.radar::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,color-mix(in srgb,var(--accent) 65%,transparent),transparent 32%);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.log{flex:1;min-width:0;font-family:var(--mono);font-size:.8rem;color:var(--muted);max-height:96px;overflow:hidden}
+.log i{color:var(--safe);font-style:normal;float:right}
+
+/* ============ RESULT ============ */
+#out{border-top:4px solid var(--v)}
+.verdict{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.gauge{position:relative;width:150px;height:150px;flex:none}
+.gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gauge circle{fill:none;stroke-width:9}
+.g0{stroke:var(--line)}
+#g1{stroke:var(--v);stroke-linecap:round;stroke-dasharray:327;stroke-dashoffset:327;transition:stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 6px var(--v))}
+.num{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.num b{font:800 2.6rem/1 var(--display)}
+.num small{color:var(--muted);font-size:.72rem}
+.stamp{flex:1;min-width:210px}
+.stamp .big{display:inline-flex;align-items:center;gap:10px;font:800 1.55rem var(--display);color:var(--v);border:3px solid var(--v);border-radius:12px;padding:6px 16px;transform:rotate(-2deg);box-shadow:0 0 22px color-mix(in srgb,var(--v) 38%,transparent);animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(1.6) rotate(-8deg);opacity:0}to{transform:scale(1) rotate(-2deg);opacity:1}}
+.stamp p{margin:10px 0 0;color:var(--muted)}
+.meter{position:relative;margin-top:20px;height:10px;border-radius:99px;background:linear-gradient(90deg,var(--safe) 0,var(--low) 30%,var(--med) 30%,var(--med) 60%,var(--high) 60%,var(--high) 100%);opacity:.9}
+.pin{position:absolute;top:-5px;width:4px;height:20px;border-radius:2px;background:var(--text);box-shadow:0 0 0 3px var(--bg);transform:translateX(-50%);transition:left 1.1s cubic-bezier(.2,.8,.2,1);left:0}
+.zones{display:flex;margin-top:6px;font-size:.76rem;color:var(--muted)}
+.zones span:nth-child(1){width:30%}.zones span:nth-child(2){width:30%}.zones span:nth-child(3){width:40%}
+.adv{margin-top:16px;padding:13px 15px;border-radius:12px;background:var(--field);border-left:4px solid var(--v);font-size:.95rem}
+.sec{margin-top:22px}
+.find{padding:11px 13px;border-radius:12px;background:var(--field);border:1px solid var(--line);margin-bottom:8px}
+.find b{display:flex;justify-content:space-between;gap:8px}
+.find b em{font-style:normal;color:var(--high);white-space:nowrap;font-family:var(--mono)}
+.find span{color:var(--muted);font-size:.9rem}
+.oks{display:flex;flex-wrap:wrap;gap:6px}
+.oks span{font-size:.8rem;padding:3px 11px;border-radius:99px;border:1px solid color-mix(in srgb,var(--safe) 50%,transparent);color:var(--safe)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+.actions .mini,.actions a{display:inline-flex;align-items:center;min-height:40px;padding:0 15px;font-size:.9rem;text-decoration:none}
+.actions a{border-radius:10px;font-weight:600}
+.actions a.alert{background:var(--high);color:#fff}
+.actions a.ghost{border:1px solid var(--high);color:var(--high)}
+
+/* ---- link anatomy (new) ---- */
+.anat{font-family:var(--mono);font-size:1.02rem;word-break:break-all;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:16px;line-height:1.7}
+.anat .proto.ok{color:var(--safe)}.anat .proto.bad{color:var(--med)}
+.anat .user{color:var(--high);text-decoration:underline wavy}
+.anat .sub{color:var(--muted);margin:0;font-size:inherit}
+.anat .dom{color:var(--text);font-weight:700;background:color-mix(in srgb,var(--accent) 24%,transparent);border-radius:5px;padding:1px 5px}
+.anat .path{color:var(--muted)}
+.owner{margin:10px 0 0;font-size:.95rem}
+.owner b{color:var(--accent)}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
+.parts div{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:.84rem;color:var(--muted)}
+.parts b{display:block;color:var(--text);font-size:.8rem}
+.parts code{display:block;color:var(--text);font-family:var(--mono);font-size:.82rem;word-break:break-all;margin:2px 0}
+
+/* ---- message evidence (new) ---- */
+.evtext{background:var(--field);border:1px solid var(--line);border-radius:12px;padding:14px;white-space:pre-wrap;word-break:break-word;font-size:.97rem;line-height:1.9}
+mark{color:inherit;border-radius:4px;padding:1px 3px;cursor:help}
+mark.high{background:color-mix(in srgb,var(--high) 30%,transparent);box-shadow:inset 0 -2px var(--high)}
+mark.med{background:color-mix(in srgb,var(--med) 30%,transparent);box-shadow:inset 0 -2px var(--med)}
+mark.low{background:color-mix(in srgb,var(--low) 28%,transparent);box-shadow:inset 0 -2px var(--low)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-size:.8rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* ============ SIDEBAR ============ */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stats div{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:8px 4px;font-size:.78rem;color:var(--muted)}
+.stats b{display:block;font:800 1.5rem/1.1 var(--display);color:var(--text)}
+.stats .f b{color:var(--high)}.stats .s b{color:var(--safe)}
+.hrow{display:flex;justify-content:space-between;align-items:center}
+.hrow h3{margin:0}
+.link{border:0;background:none;color:var(--accent);font-size:.84rem;cursor:pointer;padding:4px 0}
+.link:hover{text-decoration:underline}
+.hist{display:grid;gap:6px;margin-top:8px}
+.hist button{display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid var(--line);background:var(--field);color:var(--text);border-radius:10px;padding:8px 10px;cursor:pointer;font-size:.84rem}
+.hist button:hover{border-color:var(--accent)}
+.hist .dot{flex:none;width:10px;height:10px;border-radius:50%}
+.hist .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist .sc{flex:none;font-family:var(--mono);color:var(--muted)}
+.empty{margin:6px 0 0;color:var(--muted);font-size:.86rem}
+.tip p{margin:0 0 6px;font-size:.93rem}
+
+/* ============ TRUST ============ */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:12px}
+.pgrid div{background:var(--field);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:.88rem;color:var(--muted)}
+.pgrid b{display:block;color:var(--text);margin-bottom:2px}
+.note{font-size:.82rem;color:var(--muted);margin:12px 0 0}
+.trust{margin-top:18px}
+.trust>b{font:800 1.15rem var(--display)}
+
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--text);color:var(--bg);padding:9px 18px;border-radius:99px;font-size:.9rem;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:20}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <svg class="logo" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M32 4 8 13v17c0 15 10 26 24 30 14-4 24-15 24-30V13z"/><path d="m21 32 8 8 15-17"/></svg>
+    <div class="titles">
+      <span class="track">Innotech26, Track 08: CyberShield</span>
+      <h1>CyberSentinels</h1>
+      <p class="sub">Explainable, privacy-first scam scanner for links and messages.</p>
+    </div>
+    <button class="theme" id="theme" type="button" aria-label="Switch light or dark theme" title="Switch theme">🌙</button>
+  </header>
+
+  <div class="layout">
+    <div class="col">
+      <section class="card scan" id="scanner">
+        <h2>Paste it before you tap it.</h2>
+        <p class="lead">Check a link or a message for scam signs. Everything runs inside your browser.</p>
+        <div class="modes">
+          <button id="tabU" class="on" type="button">🔗 Link</button>
+          <button id="tabM" type="button">💬 Message</button>
+        </div>
+        <div id="boxU" class="field">
+          <input type="text" id="urlIn" placeholder="Paste a link, e.g. http://sbi-kyc-update.xyz/login" autocomplete="off" spellcheck="false" aria-label="Link to scan">
+          <button class="mini" id="pasteU" type="button">Paste</button>
+        </div>
+        <div id="boxM" class="hide">
+          <textarea id="msgIn" placeholder="Paste the SMS / WhatsApp / email text here" aria-label="Message to scan"></textarea>
+          <div class="tools"><span id="cnt">0 characters</span><button class="mini" id="pasteM" type="button">Paste</button><button class="mini" id="clearM" type="button">Clear</button></div>
+        </div>
+        <button class="go" id="go" type="button">Scan now</button>
+        <p class="hint">Tip: press Ctrl + Enter to scan quickly.</p>
+        <div class="chips">Try an example:
+          <button type="button" data-ex="safeU">safe link</button>
+          <button type="button" data-ex="badU">fake bank link</button>
+          <button type="button" data-ex="safeM">normal message</button>
+          <button type="button" data-ex="badM">scam message</button>
+        </div>
+        <div class="scanrow hide" id="scanrow"><div class="radar" aria-hidden="true"></div><div id="log" class="log"></div></div>
+      </section>
+
+      <section class="card hide" id="out" aria-live="polite">
+        <div class="verdict">
+          <div class="gauge">
+            <svg viewBox="0 0 120 120"><circle class="g0" cx="60" cy="60" r="52"/><circle id="g1" cx="60" cy="60" r="52"/></svg>
+            <div class="num"><b id="num">0</b><small>risk out of 100</small></div>
+          </div>
+          <div class="stamp">
+            <div class="big"><span id="vi"></span><span id="vl"></span></div>
+            <p id="vline"></p>
+          </div>
+        </div>
+        <div id="meterbox">
+          <div class="meter"><i class="pin" id="pin"></i></div>
+          <div class="zones"><span>Low</span><span>Suspicious</span><span>Dangerous</span></div>
+        </div>
+        <div class="adv" id="adv"></div>
+
+        <div class="sec" id="evwrap">
+          <h3 id="evh">Anatomy of this link</h3>
+          <div id="evidence"></div>
+        </div>
+        <div class="sec" id="fwrap"><h3>Why this result</h3><div id="finds"></div></div>
+        <div class="sec" id="pwrap"><h3>Checks passed</h3><div class="oks" id="oks"></div></div>
+
+        <div class="actions" id="actions">
+          <button class="mini" id="copyR" type="button">Copy report</button>
+          <button class="mini" id="dlR" type="button">Download report</button>
+          <a class="alert hide" id="rep" href="https://cybercrime.gov.in" target="_blank" rel="noopener noreferrer">Report on cybercrime.gov.in</a>
+          <a class="ghost hide" id="call" href="tel:1930">Call 1930</a>
+        </div>
+      </section>
+    </div>
+
+    <aside class="side">
+      <section class="card">
+        <h3>This session</h3>
+        <div class="stats">
+          <div><b id="sS">0</b>scans</div>
+          <div class="f"><b id="sF">0</b>flagged</div>
+          <div class="s"><b id="sC">0</b>clean</div>
+        </div>
+      </section>
+      <section class="card">
+        <div class="hrow"><h3>Recent scans</h3><button class="link" id="clrH" type="button">Clear</button></div>
+        <div class="hist" id="hist"></div>
+      </section>
+      <section class="card tip">
+        <h3>Scam tip</h3>
+        <p id="tip"></p>
+        <button class="link" id="nextTip" type="button">Show another tip</button>
+      </section>
+    </aside>
+  </div>
+
+  <section class="card trust">
+    <b>Trustworthy &amp; responsible by design</b>
+    <div class="pgrid">
+      <div><b>🔍 Explainable</b>Every score shows the exact reasons and points. No black box.</div>
+      <div><b>🔒 Privacy-first</b>Scanning runs in your browser. Nothing you paste is sent anywhere. Recent scans stay on this device only and you can clear them any time.</div>
+      <div><b>⚖️ Responsible</b>We warn and advise, we never block. The user decides.</div>
+      <div><b>🚨 Crime prevention</b>Dangerous results show how to report fraud to the cybercrime helpline.</div>
+    </div>
+    <p class="note">“Fully safe” means none of our checks found a red flag. No tool can promise 100%, so stay alert and never share OTP or passwords.</p>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+const BRANDS = {paypal:['paypal.com'],sbi:['sbi.co.in','onlinesbi.sbi'],hdfc:['hdfcbank.com'],icici:['icicibank.com'],paytm:['paytm.com'],amazon:['amazon.in','amazon.com'],google:['google.com'],microsoft:['microsoft.com'],facebook:['facebook.com'],youtube:['youtube.com','youtu.be'],whatsapp:['whatsapp.com','whatsapp.net'],linkedin:['linkedin.com'],apple:['apple.com'],instagram:['instagram.com'],netflix:['netflix.com'],flipkart:['flipkart.com']};
+const BAD_TLD = ['xyz','top','tk','ml','ga','cf','gq','click','loan','work','zip','icu','buzz','monster'];
+const GTLD = new Set(['com','org','net','edu','gov','mil','int','info','biz','name','pro','mobi','asia','tel','jobs','travel','museum','aero','coop','app','dev','io','ai','co','me','tv','cc','ws','tech','online','site','store','shop','blog','cloud','news','live','link','club','space','website','agency','email','center','digital','media','network','solutions','systems','services','world','today','life','fun','one','page','art','design','bank','finance','money','school','academy','education','xyz','top','tk','ml','ga','cf','gq','click','loan','work','zip','icu','buzz','monster']);
+const SHORT = ['bit.ly','tinyurl.com','t.co','goo.gl','cutt.ly','rb.gy','is.gd','shorturl.at'];
+/* only REAL country endings are accepted (before, any 2 letters like .zz or .js passed) */
+const CCTLD = new Set('ac ad ae af ag ai al am ao aq ar as at au aw ax az ba bb bd be bf bg bh bi bj bm bn bo br bs bt bw by bz ca cc cd cf cg ch ci ck cl cm cn co cr cu cv cw cx cy cz de dj dk dm do dz ec ee eg er es et eu fi fj fk fm fo fr ga gd ge gf gg gh gi gl gm gn gp gq gr gs gt gu gw gy hk hm hn hr ht hu id ie il im in io iq ir is it je jm jo jp ke kg kh ki km kn kp kr kw ky kz la lb lc li lk lr ls lt lu lv ly ma mc md me mg mh mk ml mm mn mo mp mq mr ms mt mu mv mw mx my mz na nc ne nf ng ni nl no np nr nu nz om pa pe pf pg ph pk pl pm pn pr ps pt pw py qa re ro rs ru rw sa sb sc sd se sg sh si sk sl sm sn so sr ss st su sv sx sy sz tc td tf tg th tj tk tl tm tn to tr tt tv tw tz ua ug uk us uy uz va vc ve vg vi vn vu wf ws ye yt za zm zw'.split(' '));
+/* these are real endings but people usually mean a file name when they type them without http */
+const FILE_LIKE = ['py','sh','md','rs','pl','cs'];
+const WORDS = ['login','signin','verify','secure','update','account','kyc','otp','password','bonus','free','claim','wallet'];
+
+/* ---------- link checks: each returns 0 (passed) or [points, title, why] ---------- */
+const URL_CHECKS = [
+ {n:'Valid domain ending', f:c => {
+    const t = c.parts[c.parts.length-1];
+    if(c.parts.length < 2) return [60,'Not a real web address','This has no domain ending (like .com or .in), so it cannot be a real website.',true];
+    if(!c.labelsOk) return [60,'Not a valid website name','Website names can only use letters, numbers and hyphens, with dots between parts. This text does not follow that rule.',true];
+    if(c.isIP) return c.ipOk ? 0 : [60,'Not a real web address','This is just a number, not a website. A real link has a name like example.com.',true];
+    if(!c.hasScheme && FILE_LIKE.includes(t)) return [60,'Looks like a file name (.'+t+')','This looks like a file name, not a website. If it is a real site, type it with https:// in front.',true];
+    if(CCTLD.has(t) || GTLD.has(t) || t.startsWith('xn--')) return 0;
+    return [60,'Invalid domain ending (.'+t+')','".'+t+'" is not a real domain ending, so this link almost certainly does not exist. A typo or fake link such as youtube.comabc is a common trick.',true];
+ }},
+ {n:'HTTPS encryption', f:c => c.hasScheme && c.u.protocol==='http:' ? [15,'No HTTPS','The link uses plain http, so the connection is not encrypted. Real login pages use https.'] : 0},
+ {n:'IP address host', f:c => c.ipOk ? [30,'IP address instead of a domain','Genuine sites use names, not raw IP addresses. Attackers use IPs to skip registering a domain.'] : 0},
+ {n:'@ symbol trick', f:c => (c.u.username || c.full.includes('@')) ? [25,'Contains "@" symbol','Browsers ignore everything before "@", so attackers hide the real destination behind a trusted-looking name.'] : 0},
+ {n:'URL length', f:c => c.full.length > 75 ? [10,'Very long URL','Long links are often used to hide the real domain.'] : 0},
+ {n:'Subdomain depth', f:c => c.parts.length > 4 ? [15,'Too many subdomains','In secure.login.bank.evil.com the real domain is evil.com, at the end, where people do not look.'] : 0},
+ {n:'Hyphen count', f:c => (c.host.match(/-/g)||[]).length >= 2 ? [10,'Many hyphens in domain','Fake domains chain words with hyphens, like sbi-kyc-update.'] : 0},
+ {n:'Look-alike characters', f:c => c.host.includes('xn--') ? [25,'Punycode domain','May use look-alike foreign characters to imitate a real brand.'] : 0},
+ {n:'Domain ending', f:c => { const t = c.parts[c.parts.length-1]; return BAD_TLD.includes(t) ? [15,'Risky domain ending (.'+t+')','This ending is cheap and heavily abused in phishing campaigns.'] : 0; }},
+ {n:'Link shortener', f:c => SHORT.includes(c.host) ? [20,'URL shortener','The real destination is hidden. Expand the link in a safe tool before opening.'] : 0},
+ {n:'Sensitive keywords', f:c => { const k = WORDS.filter(w => (c.host + c.u.pathname).includes(w)); return k.length ? [Math.min(20,k.length*7),'Sensitive keywords: '+k.join(', '),'Words like login, verify or kyc are common in fake pages that steal credentials.'] : 0; }},
+ {n:'Brand impersonation', f:c => { for(const [b,o] of Object.entries(BRANDS)){ if(c.host.includes(b) && !o.some(d => c.host===d || c.host.endsWith('.'+d))) return [35,'Pretends to be "'+b+'"','The domain contains the brand name but is not an official '+b+' domain ('+o.join(' / ')+').']; } return 0; }},
+ {n:'Encoding tricks', f:c => (c.u.pathname+c.u.search).split('%').length > 4 ? [10,'Heavy URL encoding','Lots of %-encoded characters can disguise the real content of the link.'] : 0}
+];
+function analyzeURL(raw){
+  const s = raw.trim(); if(!s) return null;
+  const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(s);
+  if(!hasScheme && /^[^\s\/@]+@[^\s\/@]+\.[^\s\/@]+$/.test(s)) return {error:'This looks like an email address, not a link. Use Message mode to check email text.'};
+  if(/\s/.test(s)) return {error:'A link cannot have spaces in it. Paste only the link, or use Message mode for full text.'};
+  let u; try { u = new URL(hasScheme ? s : 'http://'+s); } catch(e){ return {error:'This does not look like a valid link.'}; }
+  if(u.protocol !== 'http:' && u.protocol !== 'https:') return {error:'This is not a web link. Only http:// and https:// links can be scanned.'};
+  const host = u.hostname.toLowerCase();
+  const parts = host.split('.');
+  const isIP = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+  const c = {s, hasScheme, u, host, full:s.toLowerCase(), parts, isIP,
+    ipOk: isIP && /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.test(s),   /* "12345" gets turned into an IP by the browser, so we check what the user really typed */
+    labelsOk: isIP || parts.every(p => /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(p))};
+  const hits = [], passed = [];
+  URL_CHECKS.forEach(k => { const r = k.f(c); r ? hits.push({pts:r[0],title:r[1],why:r[2],inv:!!r[3]}) : passed.push(k.n); });
+  return {hits, passed, names:URL_CHECKS.map(k=>k.n), invalid:hits.some(h=>h.inv)};
+}
+
+/* ---------- message checks ---------- */
+const MSG_RULES = [
+ {n:'Urgency pressure', re:/\b(urgent|immediately|within 24 hours|last chance|act now|expires? (today|soon)|final notice)\b/i, pts:15, t:'Creates urgency', w:'Scammers rush you so you do not stop and think.'},
+ {n:'Sensitive info request', re:/\b(otp|pin|cvv|password|card number|aadhaar|pan number)\b/i, pts:30, t:'Asks for sensitive information', w:'Banks and genuine companies never ask for your OTP, PIN, CVV or password by message.'},
+ {n:'Prize bait', re:/\b(won|winner|lottery|prize|lucky draw|reward|cashback|gift card|free (gift|recharge|iphone))\b/i, pts:25, t:'Prize or reward bait', w:'Unexpected prizes are a classic hook to make you click or pay a fee.'},
+ {n:'Account threat', re:/\b(kyc|account (will be )?(blocked|suspended|closed|locked)|verify your account|unusual activity|suspicious activity)\b/i, pts:25, t:'Account threat / KYC scam', w:'Fake warnings about blocking your account push you to a phishing page.'},
+ {n:'Money request', re:/\b(send|transfer|pay)\b.{0,30}\b(money|rs\.?|inr|amount|fee|charges)\b|₹\s?\d+|\brs\.?\s?\d+/i, pts:15, t:'Mentions sending money', w:'Requests for small fees or transfers are a common scam step.'},
+ {n:'Generic greeting', re:/\b(dear (customer|user|sir|madam)|valued customer)\b/i, pts:8, t:'Generic greeting', w:'Real companies usually address you by name.'},
+ {n:'Fake bill or refund', re:/\b(refund|tax|income tax|electricity|bill) .{0,25}(pending|due|disconnect|approved)/i, pts:15, t:'Fake bill or refund claim', w:'Fake refund and disconnection notices are widely used in India-targeted scams.'},
+ {n:'Job or investment offer', re:/\b(work from home|earn \d+|part[- ]time job|investment (plan|scheme)|double your money)\b/i, pts:20, t:'Job / investment offer', w:'Easy-money offers are a common fraud pattern.'},
+ {n:'App switching', re:/\b(telegram|whatsapp)\b.{0,30}(join|contact|message us)/i, pts:10, t:'Moves you to another app', w:'Scammers move chats to apps where they are harder to trace.'}
+];
+const LINK_RE = /(https?:\/\/[^\s]+|\b[a-z0-9.-]+\.(com|in|xyz|top|tk|ml|click|net|org|co|me|link)\b[^\s]*)/gi;
+const sevOf = p => p >= 25 ? 'high' : p >= 15 ? 'med' : 'low';
+function analyzeMessage(raw){
+  const text = raw.trim(); if(!text) return null;
+  const hits = [], passed = [], spans = [];
+  MSG_RULES.forEach(r => {
+    const g = new RegExp(r.re.source, 'gi'); let m, found = false;
+    while((m = g.exec(text)) && spans.length < 60){
+      if(!m[0].length){ g.lastIndex++; continue; }
+      found = true; spans.push({s:m.index, e:m.index+m[0].length, sev:sevOf(r.pts), tip:r.t+' (+'+r.pts+')'});
+    }
+    found ? hits.push({pts:r.pts,title:r.t,why:r.w}) : passed.push(r.n);
+  });
+  let bad = false;
+  [...text.matchAll(LINK_RE)].slice(0,3).forEach(m => {
+    const l = m[0], r = analyzeURL(l);
+    if(r && r.hits && r.hits.length){
+      bad = true;
+      const pts = Math.min(40, r.hits.reduce((a,h)=>a+h.pts,0));
+      hits.push({pts, title:'Suspicious link inside message: '+l.slice(0,45), why:r.hits.map(h=>h.title).join('; ')+'.'});
+      spans.push({s:m.index, e:m.index+l.length, sev:'high', tip:'Suspicious link (+'+pts+')'});
+    }
+  });
+  if(!bad) passed.push('Links inside message');
+  const letters = (text.match(/[a-zA-Z]/g)||[]).length, caps = (text.match(/[A-Z]/g)||[]).length / Math.max(1,letters);
+  if(text.length > 40 && caps > 0.5) hits.push({pts:8,title:'Too many capital letters',why:'Shouting in capitals is used to create panic.'}); else passed.push('Capital letters');
+  return {hits, passed, spans, text, names:MSG_RULES.map(r=>r.n).concat(['Links inside message','Capital letters'])};
+}
+
+/* ---------- verdicts ---------- */
+function verdict(t, n){
+  if(t === 0) return {k:'safe', label:'Fully safe', icon:'✔', col:'var(--safe)', line:'All '+n+' checks passed. No red flags were found.', adv:'✅ What to do: this looks clean. Still, never share your OTP or password with anyone.'};
+  if(t < 30) return {k:'low', label:'Low risk', icon:'ℹ', col:'var(--low)', line:'A minor warning sign was found. Probably fine, but double-check.', adv:'ℹ️ What to do: look at the small warning below and verify the sender before you click or reply.'};
+  if(t < 60) return {k:'med', label:'Suspicious', icon:'⚠', col:'var(--med)', line:'Several scam indicators were found. Be careful.', adv:'⚠️ What to do: do not open it yet. Visit the official website by typing the address yourself, or call the official customer-care number to confirm.'};
+  return {k:'high', label:'Dangerous', icon:'✖', col:'var(--high)', line:'Strong signs of phishing or a scam. Do not interact.', adv:'🚨 What to do: do not click, reply or share any OTP/PIN. Block the sender. If money or data is already lost, call 1930 or report at cybercrime.gov.in immediately.'};
+}
+
+/* ---------- NEW: link anatomy ---------- */
+function anatomyHTML(raw){
+  const s = raw.trim(), hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(s);
+  let u; try { u = new URL(hasScheme ? s : 'http://'+s); } catch(e){ return ''; }
+  const host = u.hostname.toLowerCase(), parts = host.split('.');
+  let n = 2;
+  if(parts.length > 2 && parts[parts.length-1].length === 2 && ['co','com','org','net','gov','ac','edu','nic'].includes(parts[parts.length-2])) n = 3;
+  if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || parts.length < 2) n = parts.length;
+  const dom = parts.slice(-n).join('.'), sub = parts.slice(0, -n).join('.');
+  const path = (u.pathname === '/' && !u.search && !u.hash) ? '' : u.pathname + u.search + u.hash;
+  const https = hasScheme && u.protocol === 'https:';
+  let h = '<div class="anat">';
+  if(hasScheme) h += '<span class="proto '+(https?'ok':'bad')+'">'+esc(u.protocol)+'//</span>';
+  if(u.username) h += '<span class="user">'+esc(decodeURIComponent(u.username))+'@</span>';
+  if(sub) h += '<span class="sub">'+esc(sub)+'.</span>';
+  h += '<span class="dom">'+esc(dom)+'</span>';
+  if(u.port) h += ':'+esc(u.port);
+  if(path) h += '<span class="path">'+esc(path)+'</span>';
+  h += '</div>';
+  h += '<p class="owner">The real owner of this link is <b>'+esc(dom)+'</b>. Everything to the left of it can be made up by anyone.</p>';
+  const box = (l, v, note) => '<div><b>'+l+'</b><code>'+esc(v)+'</code>'+note+'</div>';
+  h += '<div class="parts">'
+    + box('Protocol', hasScheme ? u.protocol+'//' : 'not written', hasScheme ? (https ? 'Encrypted' : 'Not encrypted') : 'Browser will guess')
+    + box('Subdomain', sub || 'none', sub ? 'Free for anyone to create' : 'Nothing hidden here')
+    + box('Real domain', dom, 'Decides who owns the site')
+    + box('Path', path || '/', 'Page inside the site')
+    + '</div>';
+  return h;
+}
+
+/* ---------- NEW: message evidence highlighter ---------- */
+function highlightHTML(text, spans){
+  const sorted = spans.slice().sort((a,b) => a.s - b.s || b.e - a.e);
+  let out = '', pos = 0;
+  for(const sp of sorted){
+    if(sp.s < pos) continue;
+    out += esc(text.slice(pos, sp.s)) + '<mark class="'+sp.sev+'" title="'+esc(sp.tip)+'">' + esc(text.slice(sp.s, sp.e)) + '</mark>';
+    pos = sp.e;
+  }
+  out += esc(text.slice(pos));
+  const legend = '<div class="legend"><span><i style="background:var(--high)"></i>Strong sign</span><span><i style="background:var(--med)"></i>Medium sign</span><span><i style="background:var(--low)"></i>Mild sign</span><span>Hover a highlight to see why.</span></div>';
+  return spans.length ? '<div class="evtext">'+out+'</div>'+legend : '<div class="evtext">'+out+'</div><p class="owner">No risky phrases were found in this message.</p>';
+}
+
+/* ---------- NEW: history, stats, tips ---------- */
+const HK = 'cybersentinels_history_v1';
+const loadH = () => { try { return JSON.parse(localStorage.getItem(HK) || '[]'); } catch(e){ return []; } };
+const saveH = a => { try { localStorage.setItem(HK, JSON.stringify(a)); } catch(e){} };
+const DOT = {safe:'--safe', low:'--low', med:'--med', high:'--high', inv:'--high'};
+function renderHist(){
+  const h = loadH(), box = $('hist'); box.innerHTML = '';
+  $('clrH').classList.toggle('hide', !h.length);
+  if(!h.length){ box.innerHTML = '<p class="empty">Your recent scans will show up here.</p>'; return; }
+  h.forEach(it => {
+    const b = document.createElement('button'); b.type = 'button';
+    b.title = 'Scan again: ' + it.text;
+    b.innerHTML = '<span class="dot" style="background:var('+DOT[it.k]+')"></span><span class="t">'+(it.m==='url'?'🔗 ':'💬 ')+esc(it.text)+'</span><span class="sc">'+it.score+'</span>';
+    b.onclick = () => { setMode(it.m); (it.m==='url' ? $('urlIn') : $('msgIn')).value = it.text; updateCount(); scan(); };
+    box.appendChild(b);
+  });
+}
+function pushHist(m, text, k, score){
+  const short = text.trim().slice(0, 300);
+  const h = loadH().filter(x => !(x.m === m && x.text === short));
+  h.unshift({m, text:short, k, score});
+  saveH(h.slice(0, 8)); renderHist();
+}
+const st = {s:0, f:0, c:0};
+function renderStats(){ $('sS').textContent = st.s; $('sF').textContent = st.f; $('sC').textContent = st.c; }
+const TIPS = [
+ 'Banks never ask for your OTP, PIN or CVV on a call, SMS or WhatsApp.',
+ 'A prize you never entered for is bait. Do not click, do not pay a “fee”.',
+ 'The real domain sits just before the ending (.com, .in). Everything to its left can be faked.',
+ 'A deadline like “within 24 hours” is meant to stop you from thinking.',
+ 'Type your bank’s website yourself. Never use the link inside a message.',
+ 'Short links hide the destination. Expand them in a safe tool first.',
+ 'You never need to enter a UPI PIN to receive money. If asked, it is a scam.',
+ 'If you lose money, call 1930 right away. Faster reports give a better chance of recovery.'
+];
+let tipI = Math.floor(Math.random()*TIPS.length);
+const showTip = () => { $('tip').textContent = TIPS[tipI]; tipI = (tipI+1) % TIPS.length; };
+
+/* ---------- NEW: report, copy, download, toast ---------- */
+let last = null;
+function buildReport(){
+  const L = last, d = new Date();
+  const lines = ['CyberSentinels scan report', 'Date: '+d.toLocaleString(), 'Type: '+(L.mode==='url'?'Link':'Message'), 'Input: '+L.raw.trim().slice(0,500), '', 'Verdict: '+L.v.label+' (risk '+L.total+'/100)', L.v.line, '', 'Why:'];
+  if(L.res.hits.length) L.res.hits.forEach(h => lines.push(' - '+h.title+' (+'+h.pts+'): '+h.why)); else lines.push(' - No red flags found.');
+  lines.push('', 'Checks passed: '+(L.res.passed.join(', ') || 'none'), '', L.v.adv.replace(/^\S+\s/,''), '', 'Report fraud: call 1930 or visit cybercrime.gov.in');
+  return lines.join('\n');
+}
+let toastT;
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
+async function copyText(txt){
+  try { await navigator.clipboard.writeText(txt); return true; } catch(e){}
+  const a = document.createElement('textarea'); a.value = txt; a.style.position = 'fixed'; a.style.opacity = '0'; document.body.appendChild(a); a.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch(e){} a.remove(); return ok;
+}
+$('copyR').onclick = async () => { if(last) toast(await copyText(buildReport()) ? 'Report copied' : 'Could not copy'); };
+$('dlR').onclick = () => {
+  if(!last) return;
+  const url = URL.createObjectURL(new Blob([buildReport()], {type:'text/plain'}));
+  const a = document.createElement('a'); a.href = url; a.download = 'cybersentinels-report.txt'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000); toast('Report downloaded');
+};
+
+/* ---------- UI ---------- */
+let mode = 'url', busy = false;
+function setMode(m){
+  mode = m;
+  $('tabU').classList.toggle('on', m==='url'); $('tabM').classList.toggle('on', m==='msg');
+  $('boxU').classList.toggle('hide', m!=='url'); $('boxM').classList.toggle('hide', m!=='msg');
+  $('out').classList.add('hide'); $('scanrow').classList.add('hide');
+}
+function updateCount(){ const n = $('msgIn').value.length; $('cnt').textContent = n + (n===1 ? ' character' : ' characters'); }
+function countUp(el, to){
+  const t0 = performance.now();
+  (function step(t){ const p = Math.min(1,(t-t0)/1000); el.textContent = Math.round(to*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(step); })(t0);
+}
+async function scan(){
+  if(busy) return;
+  const raw = mode==='url' ? $('urlIn').value : $('msgIn').value;
+  if(!raw.trim()){ (mode==='url' ? $('urlIn') : $('msgIn')).focus(); toast('Paste something to scan first'); return; }
+  const res = mode==='url' ? analyzeURL(raw) : analyzeMessage(raw);
+  busy = true; $('go').disabled = true; $('go').textContent = 'Scanning…';
+  $('out').classList.add('hide');
+  const sc = $('scanner'), log = $('log');
+  sc.classList.add('scanning'); $('scanrow').classList.remove('hide'); log.innerHTML = '';
+  const names = res.error ? ['Reading input'] : res.names;
+  for(const n of names){ const d = document.createElement('div'); d.innerHTML = '› ' + esc(n) + ' <i>done</i>'; log.appendChild(d); log.scrollTop = log.scrollHeight; await sleep(110); }
+  sc.classList.remove('scanning'); $('scanrow').classList.add('hide');
+  busy = false; $('go').disabled = false; $('go').textContent = 'Scan now';
+  render(res, raw);
+}
+function render(res, raw){
+  const out = $('out'); out.classList.remove('hide');
+  const finds = $('finds'), oks = $('oks'); finds.innerHTML = ''; oks.innerHTML = '';
+  if(res.error){
+    last = null;
+    out.style.setProperty('--v','var(--med)');
+    $('vi').textContent = '⚠'; $('vl').textContent = 'Check input'; $('vline').textContent = res.error;
+    $('num').textContent = '0'; $('g1').style.strokeDashoffset = 327; $('adv').textContent = 'Paste a full link such as https://example.com and try again.';
+    ['meterbox','evwrap','fwrap','pwrap','actions'].forEach(i => $(i).classList.add('hide'));
+    return;
+  }
+  ['meterbox','pwrap','actions'].forEach(i => $(i).classList.remove('hide'));
+  const total = Math.min(100, res.hits.reduce((a,h)=>a+h.pts,0));
+  const v = res.invalid ? {k:'inv', label:'Invalid link', icon:'?', col:'var(--high)', line:'This link does not look real. Its domain ending is not valid, so the site probably does not exist.', adv:'🚨 What to do: do not trust this link. Check the spelling, or type the official website address yourself. Fake look-alike links are often used in phishing.'} : verdict(total, res.names.length);
+  out.style.setProperty('--v', v.col);
+  $('vi').textContent = v.icon; $('vl').textContent = v.label; $('vline').textContent = v.line; $('adv').textContent = v.adv;
+  $('g1').style.strokeDashoffset = 327; $('pin').style.left = '0%';
+  requestAnimationFrame(() => requestAnimationFrame(() => { $('g1').style.strokeDashoffset = 327*(1-total/100); $('pin').style.left = total+'%'; }));
+  countUp($('num'), total);
+
+  /* evidence: anatomy for links, highlights for messages */
+  const ev = mode==='url' ? anatomyHTML(raw) : highlightHTML(res.text, res.spans);
+  $('evh').textContent = mode==='url' ? 'Anatomy of this link' : 'Evidence in your message';
+  $('evidence').innerHTML = ev; $('evwrap').classList.toggle('hide', !ev);
+
+  $('fwrap').classList.toggle('hide', !res.hits.length);
+  res.hits.sort((a,b)=>b.pts-a.pts).forEach(h => {
+    const d = document.createElement('div'); d.className = 'find';
+    d.innerHTML = '<b>' + esc(h.title) + '<em>+' + h.pts + '</em></b><span>' + esc(h.why) + '</span>';
+    finds.appendChild(d);
+  });
+  $('pwrap').classList.toggle('hide', !res.passed.length);
+  res.passed.forEach(n => { const s = document.createElement('span'); s.textContent = '✔ ' + n; oks.appendChild(s); });
+
+  const danger = v.k === 'high' || v.k === 'inv' || v.k === 'med';
+  $('rep').classList.toggle('hide', !danger); $('call').classList.toggle('hide', !danger);
+
+  last = {res, v, total, raw, mode};
+  st.s++; (v.k==='safe' ? st.c++ : danger ? st.f++ : 0); renderStats();
+  pushHist(mode, raw, v.k, total);
+  out.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+const EX = {
+  safeU:['url','https://www.google.com/search?q=kiet'],
+  badU:['url','http://sbi-kyc-update.secure-login.xyz/verify@account'],
+  safeM:['msg',"Hi Uday, tomorrow's lab is shifted to 10 AM in room 204. Please bring your record file."],
+  badM:['msg','Dear customer, your SBI account will be blocked within 24 hours. Complete KYC now and share OTP: http://sbi-kyc-update.xyz/login. You have also won Rs. 50000 lucky draw!']
+};
+document.querySelectorAll('[data-ex]').forEach(b => b.onclick = () => { const [m,t] = EX[b.dataset.ex]; setMode(m); (m==='url' ? $('urlIn') : $('msgIn')).value = t; updateCount(); scan(); });
+$('tabU').onclick = () => setMode('url');
+$('tabM').onclick = () => setMode('msg');
+$('go').onclick = scan;
+$('urlIn').addEventListener('keydown', e => { if(e.key==='Enter') scan(); });
+$('msgIn').addEventListener('input', updateCount);
+document.addEventListener('keydown', e => { if((e.ctrlKey || e.metaKey) && e.key==='Enter') scan(); });
+async function pasteInto(el){
+  try { el.value = await navigator.clipboard.readText(); updateCount(); el.focus(); }
+  catch(e){ el.focus(); toast('Press Ctrl + V to paste'); }
+}
+$('pasteU').onclick = () => pasteInto($('urlIn'));
+$('pasteM').onclick = () => pasteInto($('msgIn'));
+$('clearM').onclick = () => { $('msgIn').value = ''; updateCount(); $('msgIn').focus(); };
+$('clrH').onclick = () => { saveH([]); renderHist(); toast('Recent scans cleared'); };
+$('nextTip').onclick = showTip;
+
+/* ---------- NEW: theme toggle ---------- */
+const root = document.documentElement;
+const isLight = () => root.dataset.theme ? root.dataset.theme === 'light' : matchMedia('(prefers-color-scheme:light)').matches;
+function paintTheme(){ $('theme').textContent = isLight() ? '☀️' : '🌙'; }
+try { const saved = localStorage.getItem('cybersentinels_theme'); if(saved) root.dataset.theme = saved; } catch(e){}
+$('theme').onclick = () => {
+  const next = isLight() ? 'dark' : 'light';
+  root.dataset.theme = next; try { localStorage.setItem('cybersentinels_theme', next); } catch(e){}
+  paintTheme();
+};
+paintTheme(); renderHist(); renderStats(); showTip();
+</script>
+</body>
+</html>
